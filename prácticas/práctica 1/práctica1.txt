@@ -1,0 +1,82 @@
+1) ¿Cuáles son los pasos que deben llevarse a cabo para realizar un cambio de contexto?
+Para realizar un cambio de contexto debemos: 
+- Guardar los registros.
+- Guardar el IP.
+- Si se trata de un programa nuevo, cargarlo en memoria.
+- Cargar los registros del nuevo.
+- Poner el valor del IP del nuevo.
+- Otras cosas que veremos m´as adelante.
+A esto se lo llama cambio de contexto o context switch. El IP y demás registros se guardan en una estructura de datos
+llamada PCB (Process Control Block).
+
+
+2) 
+
+El PCB (Process Control Block) de un sistema operativo para una arquitectura de 16 bits es
+
+struct PCB {
+int STAT; // valores posibles KE_RUNNING, KE_READY, KE_BLOCKED, KE_NEW
+int P_ID; // process ID
+int PC; // valor del PC del proceso al ser desalojado
+int RO; // valor del registro R0 al ser desalojado
+...
+int R15; // valor del registro R15 al ser desalojado
+int CPU_TIME // tiempo de ejecución del proceso
+}
+
+a) Implementar la rutina Ke_context_switch(PCB* pcb_0, PCB* pcb_1), encargada de realizar el
+cambio de contexto entre dos procesos (cuyos programas ya han sido cargados en memoria) debido
+a que el primero ha consumido su quantum. pcb_0 es el puntero al PCB del proceso a ser desalojado
+y pcb_1 al PCB del proceso a ser ejecutado a continuación. Para implementarla se cuenta con un
+lenguaje que posee acceso a los registros del procesador R0, R1, ..., R15, y las siguientes operaciones:
+
+·=·; // asignación entre registros y memoria
+int ke_current_user_time(); // devuelve el valor del cronómetro
+void ke_reset_current_user_time(); // resetea el cronómetro
+void ret(); // desapila el tope de la pila y reemplaza el PC
+void set_current_process(int pid) // asigna al proceso con el pid como el siguiente
+a ejecutarse
+
+# Pseudocódigo del programa:
+Para cada registro de R0 a R15:
+	# guardar en la PCB
+	pcb_0.Ri = Ri
+# guardo el PC
+pcb_0.PC = PC 
+# Tengo que setear el status del proceso que voy a quitar de ejecución 
+# Entiendo que si el quantum se terminó pasa a estar blocked
+
+Ke_context_switch(PCB* pcb_0, PCB* pcb_1) {
+	
+}
+
+
+b) Identificar en el programa escrito en el punto anterior cuáles son los pasos del ejercicio 1.
+
+
+3) Describir la diferencia entre un system call y una llamada a función de biblioteca.
+Una system call es una interfaz que me permite acceder a servicios del sistema operativo, pueden ser realizadas desde lenguajes de programación como C ó C++ y los programas hacen un gran uso de ellas, cuando se realiza una system call, a diferencia de una llamada a una subrutina "común y corriente" se cambia el nivel de privilegio y se pasa a modo kernel, sucede un cambio de contexto y se realiza una interrupción.
+
+
+4) En la imagen tenemos los estados de un proceso posibles: new, ready, running, blocked, terminated
+
+- ready: el proceso está listo para correr pero no tiene lugar en la cpu, entonces aguarda a que se libere
+- running: el proceso está corriendo actualmente en la cpu
+- blocked: el proceso no puede correr hasta que algo externo suceda y lo "despierte", por ejemplo una E/S
+- terminated: el proceso finalizó
+
+
+Los posibles cambios de estado son:
+
+* new --> running: un proceso recién creado por otro, se encuentra listo para correr pero no tiene lugar en la CPU ya que otro proceso se está ejecutando, entonces pasa a la "lista de espera" 
+
+* ready --> running: el proceso pasa de estar esperando a correr en la CPU, para que esto suceda el scheduler decide quitar al proceso que estaba corriendo anteriormente, esto se puede deber a muchas razones: se terminó su quantum, finalizó, etc, y decide que el proceso más prioritario es el siguiente a ocupar la cpu, esto también puede suceder por muchas razones y depende de la política de scheduling que se esté utilizando. Para que se produzca esto se realiza un cambio de contexto, por lo tanto se guarda la pcb del proceso quitado y se carga de memoria la pcb del proceso a ejecutar. 
+
+* running --> terminated: el proceso finaliza, ¡entiendo que se libera la memoria ocupada por su pcb?, el scheduler busca el siguiente proceso más priotirario en la lista de procesos ready 
+
+* running --> blocked: esto sucede cuando el proceso está esperando que algo externo concluya para seguir su ejecución, por ejemplo una E/S o que un hijo suyo cambie de estado, termine o realice cierta acción. 
+
+* blocked --> ready: un proceso en blocked puede pasar a ready cuando ya terminó la acción que lo bloqueaba y por lo tanto ya puede continuar su ejecución pero sin embardo la CPU se encuentra ocupada por otro proceso, entonces tiene que sumarse a la lista de espera en estado ready
+
+* running --> ready: esto sucede cuando el proceso es interrumpido (no encontré ejemplos específicos en el libro ni en las diapos)  
+
